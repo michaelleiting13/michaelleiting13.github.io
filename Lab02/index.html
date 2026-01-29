@@ -14,12 +14,13 @@
         <script>var map = L.map('map', {attributionControl: false}).setView([40.8183, -96.6975], 14);
         var bus = new L.geoJson(bus).addTo(map);
         L.control.attribution({prefix: false}).addTo(map);
-        var tilesource_layer = L.tileLayer('https://github.com/michaelleiting13/michaelleiting13.github.io/tree/main/Lab02/{13}/{14}/{15}.png', 
+        var tilesource_layer = L.tileLayer('https://github.com/michaelleiting13/michaelleiting13.github.io/tree/main/Lab02/{x}/{y}/{z}.png', 
             {minZoom: 13, 
             maxZoom: 15, 
             tms: false, 
             attribution: 'Created by QGIS'}).addTo(map);
         </script></body></html>
+
 
 
 
