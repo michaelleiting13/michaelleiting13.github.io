@@ -115,10 +115,22 @@ layer.bindPopup(
 }
 
 });
+}).addTo(map);
+  map.removeLayer(brintonLayer);
 
+var sliderControl = L.control.sliderControl({
+    position: "topright",
+    layer: brintonLayer,
+    follow: true
+});
+
+map.addControl(sliderControl);
+
+sliderControl.startSlider();
 </script>
 
 </body>
 </html>
+
 
 
