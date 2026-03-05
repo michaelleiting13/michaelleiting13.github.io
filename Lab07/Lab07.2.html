@@ -54,13 +54,43 @@ header: true,
 
 complete: function(results) {
 
+var geojsonFeatures = [];
+
 results.data.forEach(function(row){
 
 if(row.latitude && row.longitude){
 
-var marker = L.circleMarker(
-[row.latitude, row.longitude],
-{
+var feature = {
+"type": "Feature",
+"properties": {
+"name": row.name,
+"time": row.time
+},
+"geometry": {
+"type": "Point",
+"coordinates": [
+parseFloat(row.longitude),
+parseFloat(row.latitude)
+]
+}
+};
+
+geojsonFeatures.push(feature);
+
+}
+
+});
+
+var geojsonData = {
+"type": "FeatureCollection",
+"features": geojsonFeatures
+};
+
+var brintonLayer = L.geoJson(geojsonData, {
+
+pointToLayer:function(feature,latlng){
+
+return L.circleMarker(latlng,{
 radius:5,
 fillColor:"#ED1C24",
 color:"#ED1C24",
@@ -69,16 +99,18 @@ opacity:1,
 fillOpacity:0.7
 });
 
-marker.bindPopup(
-"<strong>Name:</strong> "+row.name+
-"<br><strong>Date:</strong> "+row.time
-);
+},
 
-marker.addTo(map);
+onEachFeature:function(feature,layer){
+
+layer.bindPopup(
+"<strong>Name:</strong> "+feature.properties.name+
+"<br><strong>Date:</strong> "+feature.properties.time
+);
 
 }
 
-});
+}).addTo(map);
 
 }
 
@@ -88,4 +120,5 @@ marker.addTo(map);
 
 </body>
 </html>
+
 
