@@ -111,11 +111,6 @@ layer.bindPopup(
 }
 
 }).addTo(map);
-
-}
-
-});
-}).addTo(map);
   map.removeLayer(brintonLayer);
 
 var sliderControl = L.control.sliderControl({
@@ -127,10 +122,16 @@ var sliderControl = L.control.sliderControl({
 map.addControl(sliderControl);
 
 sliderControl.startSlider();
+}
+
+});
+
+
 </script>
 
 </body>
 </html>
+
 
 
 
