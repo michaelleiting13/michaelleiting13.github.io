@@ -55,70 +55,34 @@ html, body {
 <script>
 
 // Create basemap
-var basemap = L.tileLayer(
-    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    {
-        attribution:'&copy; OpenStreetMap contributors'
-    }
-);
+<script>
 
-// Initialize map
-var map = L.map('map',{
-    center:[42,-93],
-    zoom:7,
-    layers:[basemap]
+// create map
+var map = L.map('map', {
+    center: [41.9, -93.5],
+    zoom: 7
 });
 
-// Load CSV data
-Papa.parse(
-    "https://michaelleiting13.github.io/Lab07/brinton_data_lab7.csv",
-{
-    download:true,
-    header:true,
+// add basemap
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
 
-    complete:function(results){
 
-        var geojsonFeatures = [];
+// GLOBAL VARIABLE so slider can access it
+var brintonLayer;
 
-        // Convert CSV rows into GeoJSON features
-        results.data.forEach(function(row){
 
-            if(row.latitude && row.longitude){
-
-                var feature = {
-                    "type":"Feature",
-                    "properties":{
-                        "name":row.name,
-                        "time":row.time
-                    },
-                    "geometry":{
-                        "type":"Point",
-                        "coordinates":[
-                            parseFloat(row.longitude),
-                            parseFloat(row.latitude)
-                        ]
-                    }
-                };
-
-                geojsonFeatures.push(feature);
-            }
-
-        });
-
-        var geojsonData = {
-            "type":"FeatureCollection",
-            "features":geojsonFeatures
-        };
-
-        // Create layer from GeoJSON
-       var brintonLayer;
-
+// load the geojson
 fetch("brinton_data_lab7.json")
-  .then(response => response.json())
-  .then(function(data) {
+.then(function(response){
+    return response.json();
+})
+.then(function(data){
 
     brintonLayer = L.geoJSON(data, {
-        pointToLayer: function(feature, latlng) {
+
+        pointToLayer: function(feature, latlng){
             return L.circleMarker(latlng, {
                 radius: 6,
                 fillColor: "red",
@@ -129,7 +93,7 @@ fetch("brinton_data_lab7.json")
             });
         },
 
-        onEachFeature: function(feature, layer) {
+        onEachFeature: function(feature, layer){
             layer.bindPopup(
                 "<b>" + feature.properties.name + "</b><br>" +
                 "Year: " + feature.properties.year
@@ -139,50 +103,49 @@ fetch("brinton_data_lab7.json")
     }).addTo(map);
 
 });
-            },
 
-            onEachFeature:function(feature,layer){
 
-                layer.bindPopup(
-                    "<strong>Name:</strong> "+feature.properties.name+
-                    "<br><strong>Date:</strong> "+feature.properties.time
-                );
+// slider control
+var slider = L.control({position: 'topright'});
 
+slider.onAdd = function(map){
+    var div = L.DomUtil.create('div','info slider');
+
+    div.innerHTML =
+    '<input id="yearSlider" type="range" min="1880" max="1920" step="1" value="1880">';
+
+    return div;
+};
+
+slider.addTo(map);
+
+
+// slider interaction
+document.addEventListener("input", function(e){
+
+    if(e.target.id === "yearSlider"){
+
+        var year = Number(e.target.value);
+
+        brintonLayer.eachLayer(function(layer){
+
+            if(layer.feature.properties.year <= year){
+                layer.addTo(map);
+            } else {
+                map.removeLayer(layer);
             }
 
         });
 
-        // Add layer to map
-        map.addLayer(brintonLayer);
-
     }
 
 });
-var slider = document.getElementById("yearSlider");
-var yearLabel = document.getElementById("yearLabel");
 
-slider.addEventListener("input", function () {
-
-    var selectedYear = parseInt(this.value);
-    yearLabel.innerHTML = selectedYear;
-
-    brintonLayer.eachLayer(function(layer) {
-
-        var year = layer.feature.properties.year;
-
-        if (year <= selectedYear) {
-            layer.setStyle({opacity:1, fillOpacity:0.8});
-        } else {
-            layer.setStyle({opacity:0, fillOpacity:0});
-        }
-
-    });
-
-});
 </script>
 
 </body>
 </html>
 ```
+
 
 
