@@ -45,6 +45,11 @@ html, body {
 
 <body>
 
+<div id="slider-container" style="width:300px; margin:10px;">
+  <label for="yearSlider">Year: <span id="yearLabel">1890</span></label><br>
+  <input type="range" id="yearSlider" min="1880" max="1910" value="1890" step="1">
+</div>
+
 <div id="map"></div>
 
 <script>
@@ -138,9 +143,30 @@ Papa.parse(
     }
 
 });
+var slider = document.getElementById("yearSlider");
+var yearLabel = document.getElementById("yearLabel");
 
+slider.addEventListener("input", function () {
+
+    var selectedYear = parseInt(this.value);
+    yearLabel.innerHTML = selectedYear;
+
+    brintonLayer.eachLayer(function(layer) {
+
+        var year = layer.feature.properties.year;
+
+        if (year <= selectedYear) {
+            layer.setStyle({opacity:1, fillOpacity:0.8});
+        } else {
+            layer.setStyle({opacity:0, fillOpacity:0});
+        }
+
+    });
+
+});
 </script>
 
 </body>
 </html>
 ```
+
