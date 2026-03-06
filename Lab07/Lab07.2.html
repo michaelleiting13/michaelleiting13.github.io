@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+
 <title>Lab 7 Part 2.2</title>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -8,24 +9,29 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css"/>
 
 <script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js"></script>
+
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
+<!-- Leaflet Slider Control -->
+<script src="https://dsps.lib.uiowa.edu/placing/public/leafletSlider-1.0.2/leaflet.SliderControl.min.js"></script>
+
 <style>
 
-html, body {
+html, body{
 margin:0;
 padding:0;
 height:100%;
 }
 
-#map {
+#map{
 width:100%;
 height:650px;
 }
 
 </style>
+
 </head>
 
 <body>
@@ -38,37 +44,39 @@ var basemap = L.tileLayer(
 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
 {
 attribution:'&copy; OpenStreetMap contributors'
-});
+}
+);
 
-var map = L.map('map',
-{
+var map = L.map('map',{
 center:[42,-93],
 zoom:7,
 layers:[basemap]
 });
 
-Papa.parse("https://michaelleiting13.github.io/Lab07/brinton_data_lab7.csv", {
+Papa.parse(
+"https://michaelleiting13.github.io/Lab07/brinton_data_lab7.csv",
+{
 
-download: true,
-header: true,
+download:true,
+header:true,
 
-complete: function(results) {
+complete:function(results){
 
-var geojsonFeatures = [];
+var geojsonFeatures=[];
 
 results.data.forEach(function(row){
 
 if(row.latitude && row.longitude){
 
-var feature = {
-"type": "Feature",
-"properties": {
-"name": row.name,
-"time": row.time
+var feature={
+"type":"Feature",
+"properties":{
+"name":row.name,
+"time":row.time
 },
-"geometry": {
-"type": "Point",
-"coordinates": [
+"geometry":{
+"type":"Point",
+"coordinates":[
 parseFloat(row.longitude),
 parseFloat(row.latitude)
 ]
@@ -81,12 +89,12 @@ geojsonFeatures.push(feature);
 
 });
 
-var geojsonData = {
-"type": "FeatureCollection",
-"features": geojsonFeatures
+var geojsonData={
+"type":"FeatureCollection",
+"features":geojsonFeatures
 };
 
-var brintonLayer = L.geoJson(geojsonData, {
+var brintonLayer=L.geoJson(geojsonData,{
 
 pointToLayer:function(feature,latlng){
 
@@ -110,28 +118,27 @@ layer.bindPopup(
 
 }
 
-}).addTo(map);
-  map.removeLayer(brintonLayer);
+});
 
-var sliderControl = L.control.sliderControl({
-    position: "topright",
-    layer: brintonLayer,
-    follow: true
+map.addLayer(brintonLayer);
+
+map.removeLayer(brintonLayer);
+
+var sliderControl=new L.control.sliderControl({
+position:"topright",
+layer:brintonLayer,
+follow:true
 });
 
 map.addControl(sliderControl);
 
 sliderControl.startSlider();
+
 }
 
 });
-
 
 </script>
 
 </body>
 </html>
-
-
-
-
