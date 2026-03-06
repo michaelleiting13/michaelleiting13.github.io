@@ -1,42 +1,46 @@
+```html
 <!DOCTYPE html>
 <html>
 <head>
+    <title>Lab 7 – Brinton Map</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<title>Lab 7 Part 2.2</title>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css"/>
 
-<link rel="stylesheet" href="https://unpkg.com/leaflet@1.3.4/dist/leaflet.css"/>
-<script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js"></script>
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet@1.3.4/dist/leaflet.js"></script>
 
-<script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
-<script src="https://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
+    <!-- jQuery -->
+    <script src="https://code.jquery.com/jquery-1.9.1.min.js"></script>
 
-<script src="https://dsps.lib.uiowa.edu/placing/public/jqueryUiTouchPunch-0.2.2/jquery.ui.touch-punch.min.js"></script>
+    <!-- jQuery UI (required later for slider) -->
+    <script src="https://code.jquery.com/ui/1.9.2/jquery-ui.js"></script>
 
-<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+    <!-- CSV parser -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 
-<script src="https://dsps.lib.uiowa.edu/placing/public/leafletSlider-1.0.2/leaflet.SliderControl.min.js"></script>
+    <!-- Fuse search libraries (required later) -->
+    <script src="https://dsps.lib.uiowa.edu/placing/public/fuse-1.2.1/fuse.min.js"></script>
+    <script src="https://dsps.lib.uiowa.edu/placing/public/leafletFuseSearch-noVersion/leafletfuse.js"></script>
 
-<link rel="stylesheet" href="https://dsps.lib.uiowa.edu/placing/public/leafletFuseSearch-noVersion/leafletfuse.css"/>
-<script src="https://dsps.lib.uiowa.edu/placing/public/fuse-1.2.1/fuse.min.js"></script>
-<script src="https://dsps.lib.uiowa.edu/placing/public/leafletFuseSearch-noVersion/leafletfuse.js"></script>
+    <link rel="stylesheet" href="https://dsps.lib.uiowa.edu/placing/public/leafletFuseSearch-noVersion/leafletfuse.css"/>
 
 <style>
 
-html,body{
-margin:0;
-padding:0;
-height:100%;
+html, body {
+    margin:0;
+    padding:0;
+    height:100%;
 }
 
-#map{
-width:100%;
-height:650px;
+#map {
+    width:100%;
+    height:650px;
 }
 
 </style>
-
 </head>
 
 <body>
@@ -45,106 +49,93 @@ height:650px;
 
 <script>
 
-var basemap=L.tileLayer(
-'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-{attribution:'&copy; OpenStreetMap contributors'}
+// Create basemap
+var basemap = L.tileLayer(
+    'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    {
+        attribution:'&copy; OpenStreetMap contributors'
+    }
 );
 
-var map=L.map('map',{
-center:[42,-93],
-zoom:7,
-layers:[basemap]
+// Initialize map
+var map = L.map('map',{
+    center:[42,-93],
+    zoom:7,
+    layers:[basemap]
 });
 
+// Load CSV data
 Papa.parse(
-"https://michaelleiting13.github.io/Lab07/brinton_data_lab7.csv",
+    "https://michaelleiting13.github.io/Lab07/brinton_data_lab7.csv",
 {
-download:true,
-header:true,
+    download:true,
+    header:true,
 
-complete:function(results){
+    complete:function(results){
 
-var features=[];
-var timestamps=[];
+        var geojsonFeatures = [];
 
-results.data.forEach(function(row){
+        // Convert CSV rows into GeoJSON features
+        results.data.forEach(function(row){
 
-if(row.latitude && row.longitude){
+            if(row.latitude && row.longitude){
 
-var date=new Date(row.time);
-var timestamp=date.getTime();
+                var feature = {
+                    "type":"Feature",
+                    "properties":{
+                        "name":row.name,
+                        "time":row.time
+                    },
+                    "geometry":{
+                        "type":"Point",
+                        "coordinates":[
+                            parseFloat(row.longitude),
+                            parseFloat(row.latitude)
+                        ]
+                    }
+                };
 
-timestamps.push(timestamp);
+                geojsonFeatures.push(feature);
+            }
 
-var feature={
-"type":"Feature",
-"properties":{
-"name":row.name,
-"time":timestamp,
-"displayDate":row.time
-},
-"geometry":{
-"type":"Point",
-"coordinates":[
-parseFloat(row.longitude),
-parseFloat(row.latitude)
-]
-}
-};
+        });
 
-features.push(feature);
+        var geojsonData = {
+            "type":"FeatureCollection",
+            "features":geojsonFeatures
+        };
 
-}
+        // Create layer from GeoJSON
+        var brintonLayer = L.geoJson(geojsonData,{
 
-});
+            pointToLayer:function(feature,latlng){
 
-var geojson={
-"type":"FeatureCollection",
-"features":features
-};
+                return L.circleMarker(latlng,{
+                    radius:5,
+                    fillColor:"#ED1C24",
+                    color:"#ED1C24",
+                    weight:1,
+                    opacity:1,
+                    fillOpacity:0.7
+                });
 
-var brintonLayer=L.geoJson(geojson,{
-pointToLayer:function(feature,latlng){
+            },
 
-return L.circleMarker(latlng,{
-radius:5,
-fillColor:"#ED1C24",
-color:"#ED1C24",
-weight:1,
-opacity:1,
-fillOpacity:0.7
-});
+            onEachFeature:function(feature,layer){
 
-},
+                layer.bindPopup(
+                    "<strong>Name:</strong> "+feature.properties.name+
+                    "<br><strong>Date:</strong> "+feature.properties.time
+                );
 
-onEachFeature:function(feature,layer){
+            }
 
-layer.bindPopup(
-"<strong>Name:</strong> "+feature.properties.name+
-"<br><strong>Date:</strong> "+feature.properties.displayDate
-);
+        });
 
-}
+        // Add layer to map
+        map.addLayer(brintonLayer);
 
-});
-
-map.addLayer(brintonLayer);
-map.removeLayer(brintonLayer);
-
-timestamps=[...new Set(timestamps)];
-timestamps.sort(function(a,b){return a-b;});
-
-var sliderControl=L.control.sliderControl({
-position:"topright",
-layer:brintonLayer,
-range:false,
-follow:true
-});
-
-map.addControl(sliderControl);
-sliderControl.startSlider();
-
-}
+    }
 
 });
 
@@ -152,3 +143,4 @@ sliderControl.startSlider();
 
 </body>
 </html>
+```
