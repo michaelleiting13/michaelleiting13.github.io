@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+    <html>
+        <head>
+            <title>Lab 8 | D3</title>
+            <style>
+            body {
+                position: absolute;
+                font-family: "Proxima Nova", "Montserrat", sans-serif;
+            }
+            h1, h2 {
+                position: absolute;
+                background: white;
+                left: 10px;
+                font-size: 1.3em;
+                font-weight: 100;
+            }
+            h2 {
+                top: 30px;
+                font-size: 1em;
+            }
+            .hover {
+                fill: yellow;
+            }
+            </style>
+            <script src="https://d3js.org/d3.v5.min.js" charset="utf-8"></script>
+            <script src="parks.js"></script>
+            <script src="boundary.js"></script>
+        </head>
+            <body>
+                <h1>Omaha, NE Parks Map</h1>
+                    <h2></h2>
+                <script>
+                //width and height of the visualization
+                    var width = 1000;
+                    var height = 600;
+                
+                //create the SVG
+                    var svg = d3.select( "body" )
+                    .append( "svg" )
+                    .attr( "width", width )
+                    .attr( "height", height );
+                // Append empty placeholder g element to the SVG
+
+                // g will contain geometry elements
+                var g = svg.append( "g" );
+
+                //width and height of the whole vizualization
+                // Set Projection Parameters
+                var albersProjection = d3.geoAlbers()
+    .scale( 150000 )
+    .rotate( [96.1,0] )
+    .center( [0, 41.3] )
+    .translate( [width/2,height/2] );
+
+                // Create GeoPath function to turn lat/lon into screen coordinates
+                var geoPath = d3.geoPath()
+                    .projection( albersProjection );
+
+                //select element; bind data; append attributes; apply
+                g.selectAll("path")
+                    .data(boundary.features)
+                    .enter()
+                    .append("path")
+                    .attr("fill", "none")
+                    .attr("stroke", "#222")
+                    .attr("stroke-width", 2)
+                    .attr("d", geoPath);
+
+                var parks_layer = svg.append("g");
+
+parks_layer.selectAll("path")
+    .data(parks.features)
+    .enter()
+    .append("path")
+    .attr("fill", "#74c476")
+    .attr("stroke", "#2c7fb8")
+    .attr("stroke-width", 0.5)
+    .attr("d", geoPath)
+    .on("mouseover", function(d){
+        d3.select("h2").text(d.properties.name);
+        d3.select(this).attr("fill", "yellow");
+    })
+    .on("mouseout", function(d){
+        d3.select("h2").text("");
+        d3.select(this).attr("fill", "green");
+    });
+                </script>
+            </body>
+    </html>
