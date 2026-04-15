@@ -1,0 +1,108 @@
+#Getting started
+
+R Notebooks are a common data analysis tool. The advantage of R Notebooks, is that you can more easily weave commentary with your code, as well as easily share your notebooks with others. 
+See the shaded block below? That's a code block. This is where the computer actually does its thing.
+
+The first section of any notebook is where you install libraries, which allow you to use the analysis tools within those libraries. 
+
+```{r}
+library(tidyverse)
+library(tidycensus)
+library(sf)
+library(mapview)
+library(shapefiles)
+library(dplyr)
+```
+
+The first time you run a library in your computer, you're going to need to install them. See how this is commented out? That's because on my computer I already have these installed. If this is your first time, uncomment the code below and run the code block. 
+
+```{r}
+#install.packages(c("tidycensus", "tidyverse", "mapview", "usethis"))
+#install.packages("shapefiles")
+
+```
+
+Now we're going to get to the tutorial portion of the lab. We're using a library called tidycensus to grab census data via the API. This is a lot quicker than downloading from the website. The hardest part is knowing what variables to use. Click the green arrow below to run this code block.
+
+```{r}
+Lancaster <- get_acs(geography ="tract",
+                          state = "NE",
+                          county = "Lancaster",
+                          variables = c(total_pop ="B03002_001",
+                                        income = "B19013_001",
+                                        total_pop = "B03002_001", # total
+                                        white ="B03002_003", # white alone
+                                        black ="B03002_004", # black alone
+                                        native ="B03002_005", # native american
+                                        asian ="B03002_006", # asian alone
+                                        PI ="B03002_007", # pi alone
+                                        Hisp ="B03002_012"), # hispanic or latino),
+                  summary_var = "B03002_001",
+                   geometry = TRUE,
+                   output = "wide",
+                   year=2022)
+```
+#You have data, now what
+
+Congratulations, you just grabbed data from the census into your R session. In the top right corner of your screen, you should see the dataframe "Lancaster" with 81 observations of 21 variables. So, what does that mean? In Lancaster County, there are 81 census tracts, and you grabbed 21 variables to associate with them. Click the blue arrow near the dataframe to peek inside. 
+
+You're probably wondering why there are variable pairs with "E" and "M" appended to them. That's because the American Community Survey operates on Estimates and a margin of error. They don't literally survey everybody, just create a statistical sample. To standardize these variables, let's transform those estimates into percentages. Run the next code block. 
+
+
+Percentize
+```{r}
+Lancaster <- Lancaster |>
+  mutate(Wpercent=whiteE/summary_est*100) |>
+  mutate(Bpercent=blackE/summary_est*100) |>
+  mutate(Npercent=nativeE/summary_est*100) |>
+  mutate(Apercent=asianE/summary_est*100) |>
+  mutate(PIpercent=PIE/summary_est*100) |>
+  mutate(Hpercent=HispE/summary_est*100)
+
+
+```
+
+What that code block did was mutate the data by transforming the race data by the variable we set as the summary variable, which is the total population. That allows us to create percentages. The code on line 54 simply saves the mutation on the original data frame. 
+
+Now, let's map the thing. This is literally one line: 
+
+
+```{r}
+mapview(Lancaster)
+```
+
+You should see a map here.
+
+Is this a great map? Not really. But this tool is really fast. It's possible to export these maps as html, but in most cases, you're going to want to export them as geojson files and upload on whatever mapping tool you have. 
+
+This code below will export it as a shapefile. 
+
+```{r}
+st_write(Lancaster,
+         "Lancaster_tracts.shp", driver = "ESRI Shapefile", append=FALSE)
+```
+
+Alternately, if you just need the csv, you can export it using this line below. 
+
+```{r}
+write.csv(Lancaster, "Lancaster.csv")
+```
+
+
+#Maps to make
+
+1. Using the Lancaster files we just created, upload a map using any method we've discussed in class so far. Stylize the map based on one of the racial categories, and design your popup to show the additional racial information that isn't being encoded on the map. Tweak the popup text so it reads in natural language, and only shows the percentages. 
+
+Map works online: 10 points
+Popups edited and correct: 10 points
+
+
+2. Using the above code as a guide, create anther map of census tracts in Douglas County, Nebraska. Stylize based on the median household income layer by census tract. 
+
+Map works online: 10 points
+R notebook submitted: 10 points 
+
+BONUS: Find an additional administrative shape in Douglas County — could be municipalities, school districts — and include that as an additional layer in the map. Layer that below the data layer so we can see how those edge effects shake out. 5 points 
+
+
+
