@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Nebraska Disaster Map</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/noUiSlider/15.7.0/nouislider.min.js"></script>
+
+    <style>
+        html, body { margin: 0; padding: 0; height: 100%; }
+        #map { height: 100%; }
+
+        .legend {
+            padding: 6px 9px;
+            background: white;
+            line-height: 18px;
+            border-radius: 5px;
+        }
+
+        .info-box {
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+            width: 220px;
+        }
+
+        .toggle-btn {
+            margin-top: 5px;
+            cursor: pointer;
+            font-size: 12px;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="data/counties.js"></script>
+<script src="data/tornadoes.js"></script>
+<script src="data/fema_counties.js"></script>
+<script src="data/floodplains.js"></script>
+
+<script>
+
+// BASEMAP
+var map = L.map('map').setView([41.5, -99.5], 7);
+
+var basemap = L.tileLayer(
+'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+{
+    attribution: 'Leaflet | Tiles © Esri | Data: FEMA NFHL, NOAA Storm Events',
+    minZoom: 0,
+    maxZoom: 18
+}).addTo(map);
+
+// COUNTIES
+var countiesLayer = L.geoJson(countiesData, {
+    style: {
+        color: "black",
+        weight: 1,
+        fillOpacity: 0
+    },
+    onEachFeature: function(feature, layer){
+        var p = feature.properties;
+        var name = p.NAME || p.NAME10 || "County";
+        layer.bindPopup("<b>County:</b> " + name);
+    }
+});
+
+// FEMA DATA
+function getFemaColor(value){
+    return value === 0 ? "#f7fcf5" :
+           value > 5000000 ? "#00441b" :
+           value > 2000000 ? "#1b7837" :
+           value > 500000 ? "#5aae61" :
+           value > 100000 ? "#a6dba0" :
+           value > 10000 ? "#d9f0d3" :
+                           "#edf8e9";
+}
+
+var femaCountyLayer = L.geoJson(femaCountyData, {
+    style: function(feature){
+        var val = Number(feature.properties.Aggregated_total_fema_num) || 0;
+        return {
+            fillColor: getFemaColor(val),
+            weight: 1,
+            color: "#555",
+            fillOpacity: 0.8
+        };
+    },
+    onEachFeature: function(feature, layer){
+        var p = feature.properties;
+        var name = p.NAME || p.NAME10 || "County";
+
+        layer.bindPopup(
+            "<b>County:</b> " + name + "<br>" +
+            "<b>FEMA Funding:</b> $" +
+            (Number(p.Aggregated_total_fema_num) || 0).toLocaleString()
+        );
+    }
+});
+
+// FLOODPLAINS
+var floodLayer = L.geoJson(floodplainsData, {
+    style: {
+        fillColor: "#3182bd",
+        color: "#08519c",
+        fillOpacity: 0.15,
+        weight: 1
+    },
+    onEachFeature: function(feature, layer){
+        layer.bindPopup("100-year Floodplain (AE)");
+    }
+});
+
+// TORNADOES
+function getColor(mag){
+    return mag >= 5 ? "#000000" :
+           mag == 4 ? "#252525" :
+           mag == 3 ? "#525252" :
+           mag <= 2 ? "#bdbdbd" :
+                      "#d9d9d9";
+}
+
+function getWeight(mag){
+    return mag >= 5 ? 4 :
+           mag == 4 ? 3 :
+           mag == 3 ? 2.5 :
+           mag == 2 ? 2 :
+           mag == 1 ? 1.5 :
+           1;
+}
+
+var tornadoLayer = L.geoJson(null, {
+    style: function(feature){
+    var mag = feature.properties.mag;
+
+    return {
+        color: getColor(mag),
+        weight: getWeight(mag),
+        opacity: 0.9,
+    };
+},
+
+    onEachFeature: function(feature, layer){
+        var p = feature.properties;
+
+        layer.bindPopup(
+            "<b>Tornado</b><br>" +
+            "Magnitude: " + (p.mag || "N/A") +
+            "<br>Year: " + (p.yr || "N/A")
+        );
+
+        layer.on({
+            mouseover: function(){ this.openPopup(); },
+            mouseout: function(){ this.closePopup(); },
+            click: function(){ this.openPopup(); }
+        });
+    }
+});
+
+var allTornadoData = tornadoData;
+
+function updateTornadoLayer(year){
+    tornadoLayer.clearLayers();
+
+    var filtered = {
+        type: "FeatureCollection",
+        features: allTornadoData.features.filter(function(f){
+            return f.properties.yr <= year;
+        })
+    };
+
+    tornadoLayer.addData(filtered);
+}
+
+// ADD LAYERS
+femaCountyLayer.addTo(map);
+floodLayer.addTo(map);
+tornadoLayer.addTo(map);
+
+
+updateTornadoLayer(2024);
+
+// LAYER CONTROL
+var overlayMaps = {
+    "Counties": countiesLayer,
+    "FEMA Funding": femaCountyLayer,
+    "Floodplains": floodLayer,
+    "Tornadoes": tornadoLayer
+};
+
+L.control.layers(null, overlayMaps, {collapsed:false}).addTo(map);
+
+var info = L.control({ position: "topright" });
+
+info.onAdd = function(){
+    var div = L.DomUtil.create("div", "info-box");
+
+    div.innerHTML = `
+        <b>Nebraska Disaster Map</b><br>
+        <div id="desc" style="margin-top:5px;">
+        <b>Note on Floodplain Representation:</b><br>
+        Floodplain areas appear more extensive in eastern Nebraska, particularly in counties receiving higher levels of FEMA funding. This may suggest a relationship between flood risk and funding allocation. However, this pattern may also reflect differences in mapping detail and data availability, as jurisdictions with more resources may have more comprehensive floodplain delineations. As such, variation in mapped flood extent should be interpreted cautiously and not assumed to directly represent differences in actual flood risk.
+        </div>
+        <div style="margin-top:6px; font-size:12px; cursor:pointer; color:#0077cc;" onclick="toggleDesc()">
+        [Hide / Show]
+        </div>
+    `;
+
+    return div;
+};
+
+info.addTo(map);
+
+// toggle function
+function toggleDesc(){
+    var d = document.getElementById("desc");
+    d.style.display = (d.style.display === "none") ? "block" : "none";
+}
+
+// LAYER ORDER
+function setLayerOrder(){
+    countiesLayer.bringToBack();
+    femaCountyLayer.bringToFront();
+    floodLayer.bringToFront();
+    tornadoLayer.bringToFront();
+}
+
+map.on('overlayadd', setLayerOrder);
+map.on('overlayremove', setLayerOrder);
+setLayerOrder();
+
+// INFO BOX
+var info = L.control({ position: "topright" });
+
+info.onAdd = function(){
+    var div = L.DomUtil.create("div", "info-box");
+
+    div.innerHTML =
+        "<b>Nebraska Disaster Map</b><br>" +
+        "<div id='desc'>Tornado activity, FEMA funding, and flood risk across Nebraska.</div>" +
+        "<div class='toggle-btn' onclick='toggleDesc()'>[Toggle Description]</div>";
+
+    return div;
+};
+
+info.addTo(map);
+
+function toggleDesc(){
+    var d = document.getElementById("desc");
+    d.style.display = (d.style.display === "none") ? "block" : "none";
+}
+
+// SLIDER
+var sliderControl = L.control({ position: 'bottomright' });
+
+var startYear = 1950;
+var endYear = 2024;
+
+sliderControl.onAdd = function(){
+
+    var container = L.DomUtil.create("div");
+    L.DomEvent.disableClickPropagation(container);
+
+    container.style.background = "white";
+    container.style.padding = "10px";
+    container.style.borderRadius = "5px";
+    container.style.width = "220px";
+
+    var label = document.createElement("div");
+    label.innerHTML = "<b>Years: 1950 - 2024</b>";
+    label.style.marginBottom = "8px";
+
+    var sliderDiv = document.createElement("div");
+
+    noUiSlider.create(sliderDiv, {
+        start: [1950, 2024],
+        connect: true,
+        range: {
+            'min': 1950,
+            'max': 2024
+        },
+        step: 1
+    });
+
+    sliderDiv.noUiSlider.on('update', function(values){
+        startYear = Math.round(values[0]);
+        endYear = Math.round(values[1]);
+
+        label.innerHTML = "<b>Years: " + startYear + " - " + endYear + "</b>";
+
+        tornadoLayer.clearLayers();
+
+        var filtered = {
+            type: "FeatureCollection",
+            features: allTornadoData.features.filter(function(f){
+                return f.properties.yr >= startYear &&
+                       f.properties.yr <= endYear;
+            })
+        };
+
+        tornadoLayer.addData(filtered);
+    });
+
+    container.appendChild(label);
+    container.appendChild(sliderDiv);
+
+    return container;
+};
+
+sliderControl.addTo(map);
+
+// LEGEND
+var legend = L.control({position:"bottomleft"});
+
+legend.onAdd = function(){
+    var div = L.DomUtil.create("div","legend");
+
+    div.innerHTML =
+    "<b>Tornado Intensity</b><br>" +
+    '<div style="display:flex; align-items:center; margin-bottom:4px;">' +
+    '<div style="width:40px; border-top:4px solid #000; margin-right:6px;"></div> EF5</div>' +
+    '<div style="display:flex; align-items:center; margin-bottom:4px;">' +
+    '<div style="width:40px; border-top:3px solid #252525; margin-right:6px;"></div> EF4</div>' +
+    '<div style="display:flex; align-items:center; margin-bottom:4px;">' +
+    '<div style="width:40px; border-top:2.5px solid #525252; margin-right:6px;"></div> EF3</div>' +
+    '<div style="display:flex; align-items:center; margin-bottom:4px;">' +
+    '<div style="width:40px; border-top:2px solid #bdbdbd; margin-right:6px;"></div> EF0–2</div><br>'+
+
+    "<b>Floodplain</b><br>" +
+    '<i style="background:#3182bd;opacity:0.5;width:18px;height:18px;display:inline-block;"></i> 100-year Flood Plain<br><br>' +
+
+    "<b>FEMA Funding</b><br>" +
+    '<i style="background:#00441b;width:18px;height:18px;display:inline-block;"></i> $5M+<br>' +
+    '<i style="background:#1b7837;width:18px;height:18px;display:inline-block;"></i> $2M–5M<br>' +
+    '<i style="background:#5aae61;width:18px;height:18px;display:inline-block;"></i> $500k–2M<br>' +
+    '<i style="background:#a6dba0;width:18px;height:18px;display:inline-block;"></i> $100k–500k<br>' +
+    '<i style="background:#d9f0d3;width:18px;height:18px;display:inline-block;"></i> $10k–100k<br>' +
+    '<i style="background:#edf8e9;width:18px;height:18px;display:inline-block;"></i> $0<br>'
+
+    return div;
+};
+
+legend.addTo(map);
+
+</script>
+
+</body>
+</html>
