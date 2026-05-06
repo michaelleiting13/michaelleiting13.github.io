@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Nebraska Repetitive Loss Properties</title>
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+
+    <style>
+        html, body {
+            margin: 0;
+            padding: 0;
+            height: 100%;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+        }
+
+        .info-box {
+            padding: 10px;
+            background: white;
+            border-radius: 5px;
+            line-height: 1.5;
+            width: 260px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+
+        .legend {
+            background: white;
+            padding: 10px;
+            line-height: 18px;
+            border-radius: 5px;
+            box-shadow: 0 0 15px rgba(0,0,0,0.2);
+        }
+
+        .legend i {
+            width: 18px;
+            height: 18px;
+            float: left;
+            margin-right: 8px;
+            opacity: 0.9;
+        }
+    </style>
+</head>
+
+<body>
+
+<div id="map"></div>
+
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+<!-- Your GeoJSON Variable -->
+<script src="data/repetitive_loss_counties.js"></script>
+
+<script>
+
+/////////////////////////////
+// INITIALIZE MAP
+/////////////////////////////
+
+var map = L.map('map').setView([41.5, -99.8], 7);
+
+/////////////////////////////
+// BASEMAP
+/////////////////////////////
+
+L.tileLayer(
+    'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}',
+    {
+        attribution: 'Tiles © Esri'
+    }
+).addTo(map);
+
+/////////////////////////////
+// COLOR FUNCTION
+/////////////////////////////
+
+function getColor(d) {
+    return d > 100 ? '#7f0000' :
+           d > 50  ? '#b30000' :
+           d > 25  ? '#d7301f' :
+           d > 10  ? '#ef6548' :
+           d > 0   ? '#fc8d59' :
+                     '#fef0d9';
+}
+
+/////////////////////////////
+// STYLE FUNCTION
+/////////////////////////////
+
+function style(feature) {
+
+    return {
+        fillColor: getColor(feature.properties.RL_Count),
+        weight: 1,
+        opacity: 1,
+        color: '#555',
+        dashArray: '2',
+        fillOpacity: 0.8
+    };
+}
+
+/////////////////////////////
+// HIGHLIGHT FUNCTION
+/////////////////////////////
+
+function highlightFeature(e) {
+
+    var layer = e.target;
+
+    layer.setStyle({
+        weight: 2,
+        color: '#222',
+        dashArray: '',
+        fillOpacity: 0.9
+    });
+
+    layer.bringToFront();
+}
+
+/////////////////////////////
+// RESET HIGHLIGHT
+/////////////////////////////
+
+function resetHighlight(e) {
+    choropleth.resetStyle(e.target);
+}
+
+/////////////////////////////
+// POPUPS + INTERACTION
+/////////////////////////////
+
+function onEachFeature(feature, layer) {
+
+    var p = feature.properties;
+
+    layer.bindPopup(
+        "<b>County:</b> " + (p.NAME || p.county || "N/A") + "<br>" +
+        "<b>Repetitive Loss Properties:</b> " + (p.RL_Count || 0)
+    );
+
+    layer.on({
+        mouseover: highlightFeature,
+        mouseout: resetHighlight
+    });
+}
+
+/////////////////////////////
+// CHOROPLETH LAYER
+/////////////////////////////
+
+var choropleth = L.geoJson(repetitiveLossCountyData, {
+
+    style: style,
+
+    onEachFeature: onEachFeature
+
+}).addTo(map);
+
+/////////////////////////////
+// INFO BOX
+/////////////////////////////
+
+var info = L.control({ position: 'topright' });
+
+info.onAdd = function () {
+
+    var div = L.DomUtil.create('div', 'info-box');
+
+    div.innerHTML =
+        "<b>Nebraska Repetitive Loss Properties</b><br><br>" +
+        "This map displays FEMA NFIP repetitive loss properties by county across Nebraska based on records available at the time of dataset publication. These records indicate properties that have been affected by multiple hazards since 1978, through January 2026. Repetitive loss properties represent structures with multiple flood-related insurance claims under the National Flood Insurance Program (NFIP). Patterns shown are cumulative and historical in nature and should not be interpreted as real-time flood conditions.";
+
+    return div;
+};
+
+info.addTo(map);
+
+/////////////////////////////
+// LEGEND
+/////////////////////////////
+
+var legend = L.control({position: 'bottomright'});
+
+legend.onAdd = function () {
+
+    var div = L.DomUtil.create('div', 'legend');
+
+    var grades = [0, 10, 25, 50, 100];
+
+    div.innerHTML += "<b>RL Properties</b><br>";
+
+    for (var i = 0; i < grades.length; i++) {
+
+        div.innerHTML +=
+            '<i style="background:' + getColor(grades[i] + 1) + '"></i> ' +
+            grades[i] +
+            (grades[i + 1] ? '&ndash;' + grades[i + 1] + '<br>' : '+');
+    }
+
+    return div;
+};
+
+legend.addTo(map);
+
+</script>
+
+</body>
+</html>
